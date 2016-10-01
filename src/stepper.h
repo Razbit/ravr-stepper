@@ -23,6 +23,9 @@ public:
 	~Stepper(){};
 
 	void step(int steps);
+	void calibrate(int dir, int pin, int state);
+	int get_pos();
+	void set_pos(int pos);
 
 private:
 	int energize(int winding, int dir);
@@ -30,15 +33,30 @@ private:
 	int m_pins[4];
 	int m_state;
 	int m_delay;
+	int m_pos;
 };
 
 Stepper::Stepper(int pins[4], int _delay)
 {
 	m_state = STATE_W1;
 	m_delay = _delay;
+	m_pos = 0;
 	
 	for (int i = 0; i < 4; i++)
+	{
+		pinMode(pins[i], OUTPUT);
 		m_pins[i] = pins[i];
+	}
+}
+
+int Stepper::get_pos()
+{
+	return m_pos;
+}
+
+void Stepper::set_pos(int pos)
+{
+	m_pos = pos;
 }
 
 void Stepper::step(int steps)
@@ -48,6 +66,8 @@ void Stepper::step(int steps)
 	
 	/* if <steps> is negative, turn anti-clockwise */
 	int dir = DIR_CW;
+
+	m_pos += steps;
 	
 	if (steps < 0)
 	{
@@ -60,6 +80,20 @@ void Stepper::step(int steps)
 		m_state = energize((m_state+2)%4, dir);
 		steps--;
 		delay(m_delay);
+	}
+}
+
+void Stepper::calibrate(int dir, int pin, int state)
+{
+	/* step to [dir] direction until [pin] is [state] */
+	if (dir == DIR_ACW)
+		dir = -1;
+	else
+		dir = 1;
+	
+	while (!(digitalRead(pin) == state))
+	{
+		step(dir);
 	}
 }
 
